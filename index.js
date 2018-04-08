@@ -40,7 +40,7 @@ Niffler.prototype.init = function (config) {
     //The boot sequence of ZWay is not well defined.
     //This method is used to detect device creation on boot and niffle any device on the list
     this.deviceCreated = function (vDev) {
-	self.niffleDevice(vDev);
+	    self.niffleDevice(vDev);
     };
     this.deviceDeleted = function (vDev) {
         self.unNiffle([vDev.id]);
@@ -143,14 +143,41 @@ Niffler.prototype.niffleDevice = function(vdev) {
     var sdev;
     //Should this device be niffled? Look for it in the source list
     this.config.sourceDevices.forEach(function(adev) {
-	if(adev === vdev.id) {
-	    sdev = adev;
-	    return;
-	}
+        if(adev === vdev.id) {
+            sdev = adev;
+            return;
+        }
     });
+
+    // look for known devices that need niffling
+    var nodeId = this.getDeviceIndex(vdev.id);
+
+    if(nodeId){
+        var manufacturerId = -1;
+        if (zway.devices[nodeId].data.manufacturerId.value) {
+            manufacturerId = zway.devices[nodeId].data.manufacturerId.value;
+        }
+
+        var manufacturerProductId = -1;
+        if (zway.devices[nodeId].data.manufacturerProductId.value) {
+            manufacturerProductId = zway.devices[nodeId].data.manufacturerProductId.value;
+        }
+
+        // Schlage locks
+        var knownDevices = [
+            "335-12344", // gocontrol zwave bulbs
+            "99-12337", // zwave bulb
+            "59-20548", // schlage lock
+        ];
+        
+        if (_.contains(knownDevices, manufacturerId+"-"+manufacturerProductId)){
+            sdev = vdev;
+        }
+    }
+
     if(sdev) {//We have a match
-	//Niffle this device
-	console.log("Niffler: Niffling device ",vdev.id);
-	this.niffle(vdev);
+        //Niffle this device
+        console.log("Niffler: Niffling device ",vdev.id);
+        this.niffle(vdev);
     }
 };
